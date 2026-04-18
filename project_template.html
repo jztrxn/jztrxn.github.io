@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "background": "#fcf9f8",
+                    "inverse-surface": "#313030",
+                    "surface": "#fcf9f8",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-fixed-dim": "#ffb5a0",
+                    "primary": "#c13301",
+                    "secondary-fixed-dim": "#b6c4ff",
+                    "secondary": "#445aa7",
+                    "secondary-fixed": "#dce1ff",
+                    "outline": "#737688",
+                    "on-secondary-container": "#243c88",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#dcd9d9",
+                    "primary-container": "#c13301",
+                    "error-container": "#ffdad6",
+                    "secondary-container": "#95aafd",
+                    "surface-container-low": "#f6f3f2",
+                    "on-primary-container": "#ffe1d9",
+                    "on-primary": "#ffffff",
+                    "surface-bright": "#fcf9f8",
+                    "on-error-container": "#93000a",
+                    "surface-tint": "#c13301",
+                    "on-tertiary-fixed": "#001551",
+                    "tertiary-container": "#0055ff",
+                    "surface-variant": "#e5e2e1",
+                    "on-secondary": "#ffffff",
+                    "surface-container-high": "#eae7e7",
+                    "primary-fixed": "#ffdbd1",
+                    "on-secondary-fixed": "#001551",
+                    "on-primary-fixed-variant": "#872100",
+                    "tertiary": "#0055ff",
+                    "outline-variant": "#c3c5d9",
+                    "surface-container": "#f0eded",
+                    "on-surface": "#1c1b1b",
+                    "surface-container-highest": "#e5e2e1",
+                    "on-tertiary-fixed-variant": "#0039b3",
+                    "tertiary-fixed": "#dce1ff",
+                    "inverse-on-surface": "#f3f0ef",
+                    "tertiary-fixed-dim": "#b6c4ff",
+                    "on-primary-fixed": "#3b0900",
+                    "on-tertiary-container": "#e3e6ff",
+                    "on-surface-variant": "#434656",
+                    "on-background": "#1c1b1b",
+                    "on-tertiary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "on-secondary-fixed-variant": "#2b418d",
+                    "inverse-primary": "#b6c4ff"
+            },
+            "borderRadius": {
+                    "none": "0",
+                    "sm": "0",
+                    "md": "0",
+                    "lg": "0",
+                    "xl": "0",
+                    "full": "0"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface selection:bg-secondary-container selection:text-on-secondary-container">
+    <!-- TopNavBar -->
+    <nav class="fixed top-0 w-full z-50 border-none bg-[#fcf9f8] dark:bg-[#1c1b1b] flex justify-center">
+        <div class="flex justify-between items-center px-8 py-6 w-full max-w-[1440px] mx-auto">
+            <a class="text-lg font-black tracking-tighter text-[#1c1b1b] dark:text-[#fcf9f8] font-headline uppercase" href="index.html">
+                JOSEPH TRAN MD/PHD
+            </a>
+            <div class="hidden md:flex items-center space-x-12">
+                <div class="flex space-x-8">
+                    <a class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight text-sm uppercase text-[#1c1b1b]/70 dark:text-[#fcf9f8]/70 hover:text-[#c13301] dark:hover:text-[#0055ff] transition-colors duration-100" href="index.html#projects">Projects</a>
+                    <a class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight text-sm uppercase text-[#1c1b1b]/70 dark:text-[#fcf9f8]/70 hover:text-[#c13301] dark:hover:text-[#0055ff] transition-colors duration-100" href="index.html#research">Research</a>
+                    <a class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight text-sm uppercase text-[#1c1b1b]/70 dark:text-[#fcf9f8]/70 hover:text-[#c13301] dark:hover:text-[#0055ff] transition-colors duration-100" href="publications.html">Publications</a>
+                    <a class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight text-sm uppercase text-[#1c1b1b]/70 dark:text-[#fcf9f8]/70 hover:text-[#c13301] dark:hover:text-[#0055ff] transition-colors duration-100" href="timeline.html">Experience</a>
+                    <a class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight text-sm uppercase text-[#1c1b1b]/70 dark:text-[#fcf9f8]/70 hover:text-[#c13301] dark:hover:text-[#0055ff] transition-colors duration-100" href="contact.html">Contact</a>
+                </div>
+                <button class="bg-primary text-on-primary px-6 py-2.5 font-headline font-bold text-xs uppercase tracking-widest active:opacity-80 transition-all duration-100">
+                    Download CV
+                </button>
+            </div>
+            <!-- Mobile Menu Toggle -->
+            <button class="md:hidden text-on-surface">
+                <span class="material-symbols-outlined" data-icon="menu">menu</span>
+            </button>
+        </div>
+    </nav>
+<main class="pt-32 pb-24 px-8 md:px-16 lg:px-24">
+<!-- Hero Section -->
+<section class="max-w-7xl mx-auto mb-24">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+<div class="md:col-span-8">
+<span class="inline-block text-primary font-bold tracking-[0.2em] uppercase text-sm mb-4">Bioinformatics Engineering</span>
+<h1 class="text-6xl md:text-8xl font-extrabold tracking-tighter leading-[0.9] mb-8">Genomics Pipeline V2</h1>
+<div class="flex flex-wrap gap-3">
+<span class="px-4 py-1 border border-outline-variant text-xs font-medium uppercase tracking-wider text-on-surface-variant">Nextflow</span>
+<span class="px-4 py-1 border border-outline-variant text-xs font-medium uppercase tracking-wider text-on-surface-variant">Kubernetes</span>
+<span class="px-4 py-1 border border-outline-variant text-xs font-medium uppercase tracking-wider text-on-surface-variant">Python</span>
+<span class="px-4 py-1 border border-outline-variant text-xs font-medium uppercase tracking-wider text-on-surface-variant">AWS Batch</span>
+</div>
+</div>
+<div class="md:col-span-4 pb-4">
+<p class="text-on-surface-variant text-lg leading-relaxed border-l-4 border-primary pl-6">
+                        An enterprise-grade orchestration layer for massive-scale DNA sequencing, reducing processing time by 60% while maintaining clinical-grade reproducibility.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Featured Visualization -->
+<section class="mb-32">
+<div class="w-full h-[600px] overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" data-alt="Technical data visualization dashboard with complex genomic mapping charts, DNA helix graphics, and dark technical UI interface with blue neon accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwCSIav6LKuv6vV8bmB5ECiJgpKJ_D7EXGCVEkvvjIMhspPe4V37MbciYRAMIMMi2KuqmH0Ue7tcSbK3i9z1JCtmaNmx2xdjMLGCEvE3Mh_WlmrbzDiNVbgxddgQvC1guRSAfifPvtIswPkaVzdLFyezG20MYzuGupbSfab1tO2eu9UHSCJVGtkG05i0FIotOo7k-i8CKlkbUNDjqj5ZaR94glGZcLOqYxTIQNPNK5-CiBLsRZXPyIUX-DVw2LI308ckP2wij33mc"/>
+</div>
+</section>
+<!-- The Problem & Solution -->
+<section class="max-w-7xl mx-auto mb-32 grid grid-cols-1 md:grid-cols-12 gap-16">
+<div class="md:col-span-4">
+<h2 class="text-4xl font-bold tracking-tight mb-6">The Clinical Challenge</h2>
+<div class="h-1 w-20 bg-primary mb-8"></div>
+<p class="text-on-surface-variant body-lg leading-loose mb-6">
+                    In modern oncology, speed is survival. Legacy pipelines often took 72+ hours to process a single whole-genome sequence, causing critical delays in therapeutic decision-making for late-stage patients.
+                </p>
+<p class="text-on-surface-variant body-lg leading-loose">
+                    Furthermore, inconsistent cloud environments led to "reproducibility drift," where the same data could yield slightly different results across different compute clusters.
+                </p>
+</div>
+<div class="md:col-span-8 space-y-12">
+<div class="bg-surface-container-low p-12">
+<h3 class="text-2xl font-bold mb-4">Architectural Breakthrough</h3>
+<p class="text-on-surface-variant leading-relaxed mb-8">
+                        V2 utilizes a containerized micro-service architecture that splits sequencing data into parallelized shards. By leveraging Nextflow for workflow management and custom Kubernetes operators, we achieved deterministic scaling.
+                    </p>
+<div class="grid grid-cols-2 gap-8">
+<div>
+<span class="block text-4xl font-black text-primary">12ms</span>
+<span class="text-xs uppercase tracking-widest font-bold opacity-60">Task Latency</span>
+</div>
+<div>
+<span class="block text-4xl font-black text-primary">99.9%</span>
+<span class="text-xs uppercase tracking-widest font-bold opacity-60">Reproducibility Score</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<div class="aspect-square bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Microscopic view of cellular structures with glowing fluorescent markers on a deep black background, technical scientific photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUbalSAaDoVD8Itm_pQ5j4UuAXFxl6VZ06nRuF933qQ7yVIeUgt9uUBnsM9aoxuTUAS7vzSW__2WSB1LLfm3BE6b59mlw9FU9jrICSnKmmiJBzCuVkKOubmrjs1vES-gdbo_3PWsYDsD-J1-B_W-6Ev7RoQoMv4-2WzTTPD4c1yUJnPQi9rIFdwCuJ2od8myFmiotgayL7YBk5enlHPEqsc7AiZ97RbCX56gQ0owaRDgwL6P3lZv63gMOoR6EVQEzb8VoKSzf4ubQ"/>
+</div>
+<div class="aspect-square bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Abstract view of modern server rack data center with blinking blue and white LED lights and clean cabling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXhgYy3nz-TR5kq_maeKH9j47RNHoshiAnI4qJ6swb23IGhuWWuhOL0O5Y05c7mfJDtuUavYKg8DCy-58wzcPmcew_-rz1-L8gorWW6G0ToE4ZsbSzHCchDW_pAYUfA4Z0zfSL2E-CcfFU3FKTyZmOJLsvBNt8SQDgfPRVfW3rytqKpwT83OkZ_OBSQGcGLV_eSQGx623pjYS_KNUA1ss4OpGhwbYsO3J_b0HDRhZ0KbmwhBPaMJRgVCZ_Ub9L3eXuxvEfUnXypCo"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Vertical Timeline Section -->
+<section class="max-w-5xl mx-auto mb-32">
+<h2 class="text-5xl font-extrabold tracking-tighter mb-16 text-center">Development Journey</h2>
+<div class="relative">
+<!-- Center Line -->
+<div class="absolute left-1/2 transform -translate-x-1/2 w-px h-full bg-outline-variant"></div>
+<!-- Milestone 1 -->
+<div class="relative flex items-center justify-between mb-24">
+<div class="w-5/12 text-right pr-12">
+<span class="text-xs font-bold text-primary tracking-widest uppercase mb-2 block">Phase 01</span>
+<h4 class="text-xl font-bold mb-2">Conception &amp; Benchmarking</h4>
+<p class="text-sm text-on-surface-variant">Analyzing bottlenecks in existing GATK workflows and defining the V2 spec for sub-24h processing.</p>
+</div>
+<div class="z-10 bg-background border-2 border-primary w-4 h-4 absolute left-1/2 transform -translate-x-1/2"></div>
+<div class="w-5/12 pl-12">
+<span class="text-xs font-medium text-outline">MARCH 2023</span>
+</div>
+</div>
+<!-- Milestone 2 -->
+<div class="relative flex items-center justify-between mb-24">
+<div class="w-5/12 text-right pr-12">
+<span class="text-xs font-medium text-outline">JUNE 2023</span>
+</div>
+<div class="z-10 bg-primary w-4 h-4 absolute left-1/2 transform -translate-x-1/2"></div>
+<div class="w-5/12 pl-12">
+<span class="text-xs font-bold text-primary tracking-widest uppercase mb-2 block">Phase 02</span>
+<h4 class="text-xl font-bold mb-2">Kubernetes Integration</h4>
+<p class="text-sm text-on-surface-variant">Migrating from static VM clusters to dynamic K8s sharding for optimized resource allocation.</p>
+</div>
+</div>
+<!-- Milestone 3 -->
+<div class="relative flex items-center justify-between mb-24">
+<div class="w-5/12 text-right pr-12">
+<span class="text-xs font-bold text-primary tracking-widest uppercase mb-2 block">Phase 03</span>
+<h4 class="text-xl font-bold mb-2">Validation Trials</h4>
+<p class="text-sm text-on-surface-variant">Benchmarking against 1,000+ public datasets to ensure zero variance in variant calling.</p>
+</div>
+<div class="z-10 bg-background border-2 border-primary w-4 h-4 absolute left-1/2 transform -translate-x-1/2"></div>
+<div class="w-5/12 pl-12">
+<span class="text-xs font-medium text-outline">OCTOBER 2023</span>
+</div>
+</div>
+<!-- Milestone 4 -->
+<div class="relative flex items-center justify-between">
+<div class="w-5/12 text-right pr-12">
+<span class="text-xs font-medium text-outline">JANUARY 2024</span>
+</div>
+<div class="z-10 bg-primary w-4 h-4 absolute left-1/2 transform -translate-x-1/2"></div>
+<div class="w-5/12 pl-12">
+<span class="text-xs font-bold text-primary tracking-widest uppercase mb-2 block">Phase 04</span>
+<h4 class="text-xl font-bold mb-2">Full Deployment</h4>
+<p class="text-sm text-on-surface-variant">Production release to clinical partner labs across North America and Europe.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Technical Deep Dive Cards -->
+<section class="max-w-7xl mx-auto mb-32">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-0 border-t border-outline-variant">
+<div class="p-12 border-b md:border-b-0 md:border-r border-outline-variant group hover:bg-surface-container-low transition-colors duration-300">
+<span class="material-symbols-outlined text-primary text-4xl mb-6">database</span>
+<h5 class="text-xl font-bold mb-4">Hybrid Storage</h5>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                        Intelligent tiering between S3 and FSx for Lustre to balance cost and ultra-low latency data access during high-compute phases.
+                    </p>
+</div>
+<div class="p-12 border-b md:border-b-0 md:border-r border-outline-variant group hover:bg-surface-container-low transition-colors duration-300">
+<span class="material-symbols-outlined text-primary text-4xl mb-6">terminal</span>
+<h5 class="text-xl font-bold mb-4">CLI Dashboard</h5>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                        A custom Golang-based terminal interface for real-time monitoring of thousands of concurrent pipeline runs.
+                    </p>
+</div>
+<div class="p-12 group hover:bg-surface-container-low transition-colors duration-300">
+<span class="material-symbols-outlined text-primary text-4xl mb-6">security</span>
+<h5 class="text-xl font-bold mb-4">HIPAA Compliance</h5>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                        End-to-end encryption using AWS KMS and rigorous IAM policies ensuring patient data security at every pipeline stage.
+                    </p>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="max-w-7xl mx-auto">
+<div class="bg-primary p-16 flex flex-col md:flex-row justify-between items-center gap-8">
+<div>
+<h2 class="text-4xl font-bold text-on-primary mb-2">Explore the Research</h2>
+<p class="text-on-primary-container opacity-80">Full whitepaper and technical documentation available.</p>
+</div>
+<div class="flex gap-4">
+<button class="bg-surface text-primary px-8 py-4 font-bold uppercase tracking-widest text-sm hover:bg-surface-container transition-colors">
+                        View Whitepaper
+                    </button>
+<button class="border border-on-primary text-on-primary px-8 py-4 font-bold uppercase tracking-widest text-sm hover:bg-primary-container transition-colors">
+                        GitHub Repo
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full border-t-0 bg-[#fcf9f8] dark:bg-[#1c1b1b]">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 py-16 gap-8 w-full">
+<div class="text-lg font-black text-[#1c1b1b] dark:text-[#fcf9f8]">DR. PORTFOLIO</div>
+<div class="flex gap-12 font-inter text-xs uppercase tracking-[0.2em] text-[#737688] dark:text-[#dcd9d9]">
+<a class="hover:text-[#0041c8] transition-colors duration-200 underline-offset-4 hover:underline" href="#">GitHub</a>
+<a class="hover:text-[#0041c8] transition-colors duration-200 underline-offset-4 hover:underline" href="#">LinkedIn</a>
+<a class="hover:text-[#0041c8] transition-colors duration-200 underline-offset-4 hover:underline" href="#">ORCID</a>
+</div>
+<div class="font-inter text-xs uppercase tracking-[0.2em] text-[#737688] dark:text-[#dcd9d9]">
+                © 2024 Dr. Portfolio. All Rights Reserved.
+            </div>
+</div>
+</footer>
+</body></html>
