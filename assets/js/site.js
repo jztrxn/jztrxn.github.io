@@ -97,4 +97,25 @@ const SITE = {
         </div>
       </div>`;
   }
+  // ---- "Upcoming" badges for presentations ----
+  // Any entry whose details line ends with a date like "October 27, 2026" gets an
+  // "Upcoming" badge through that day, and loses it automatically the day after.
+  // Runs in each visitor's browser, so nothing needs to be republished.
+  const MONTHS = ["january","february","march","april","may","june","july",
+                  "august","september","october","november","december"];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  document.querySelectorAll(".flex-grow > p.font-mono").forEach((details) => {
+    const m = details.textContent.match(/([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\s*$/);
+    if (!m) return;
+    const month = MONTHS.indexOf(m[1].toLowerCase());
+    if (month < 0) return;
+    const eventDay = new Date(Number(m[3]), month, Number(m[2]));
+    const title = details.parentElement.querySelector("h3");
+    if (!title || eventDay < today) return;
+    const badge = document.createElement("span");
+    badge.className = "align-middle ml-2 px-2 py-0.5 bg-primary text-on-primary font-mono text-[10px] uppercase tracking-widest";
+    badge.textContent = "Upcoming";
+    title.appendChild(badge);
+  });
 })();
