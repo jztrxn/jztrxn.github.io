@@ -6,13 +6,18 @@ Update the portfolio website from the Resumes folder.
    assets/Joseph_Tran_CV.pdf, which the site's "Download CV" button serves.
 2. Rebuilds the "Published" list on publications.html from the Zotero
    auto-exported "Personal Publications.bib", newest first.
-3. Commits and pushes the changes to GitHub (skip with --no-push).
+3. Syncs the Experience page (timeline.html) and the Under Review and
+   Presentations lists (publications.html) with the CV's LaTeX source.
+   Only items that changed in the CV since the last run are updated, so
+   wording edited by hand on the website is kept (see cv_snapshot.json).
+4. Commits and pushes the changes to GitHub (skip with --no-push).
 
-Usage:  python3 scripts/update_website.py [--dry-run] [--no-push]
-Only the Python standard library is used.
+Usage:  python3 scripts/update_website.py [--dry-run] [--no-push] [--tex FILE]
+Only the Python standard library is used. The CV itself is never modified.
 """
-import argparse, filecmp, html, re, shutil, subprocess, sys
+import argparse, difflib, filecmp, html, json, re, shutil, subprocess, sys
 from datetime import date
+from html.parser import HTMLParser
 from pathlib import Path
 
 # ---------------- Settings ----------------
@@ -23,6 +28,19 @@ CV_PATTERN  = re.compile(r"^(\d{8})_CV.*\.pdf$", re.IGNORECASE)   # dated CVs on
 SITE_DIR    = Path(__file__).resolve().parent.parent
 CV_TARGET   = SITE_DIR / "assets" / "Joseph_Tran_CV.pdf"
 PUBS_PAGE   = SITE_DIR / "publications.html"
+TIMELINE_PAGE = SITE_DIR / "timeline.html"
+SNAPSHOT    = SITE_DIR / "scripts" / "cv_snapshot.json"   # what the CV said at the last sync
+
+# Website-only extras added to CV items (matched by text the item contains).
+TIMELINE_IMAGES = {   # organization -> (image, alt text)
+    "Visualization Lab": ("assets/img/vr-disparometer/cover.jpg", "Unity scenes from the VR Disparometer"),
+    "IMMERS": ("assets/img/ar-xray-visualizer/cover.jpg", "HoloLens view of scattered x-ray particles above a patient model"),
+}
+PRESENTATION_LINKS = {   # words in the presentation title -> (link label, file)
+    "Neuro-Visual Assessment Platform": ("Slides", "assets/img/sans-vr-vision-suite/sans-ivrha-2026-slides.pdf"),
+    "Evaluating RetFound": ("Poster", "assets/img/retfound-glaucoma/arvo-2025-poster.pdf"),
+}
+ABBREV = {"UNR SOM": "UNR School of Medicine", "BAYER": "Bayer"}   # CV abbreviation -> website text
 
 MY_FAMILY, MY_GIVEN = "Tran", "Joseph"     # name to bold
 MAX_AUTHORS = 6                            # longer lists become "first 3 et al."
@@ -206,6 +224,387 @@ def update_cv(dry):
     print(f"CV: copied {newest.name} -> assets/{CV_TARGET.name}")
     return True
 
+# ---------------- CV (LaTeX source) parsing ----------------
+CV_COMMANDS = {"resumeSubheading": 4, "resumeSubSubheading": 2, "resumeItem": 1,
+               "resumeAwardHeading": 3, "resumeMembership": 3, "resumePresentation": 5}
+CMD_RE = re.compile(r"\\(" + "|".join(CV_COMMANDS) + r")\b")
+
+def newest_tex():
+    texs = [p for p in RESUMES_DIR.glob("*.tex") if p.is_file()]
+    return max(texs, key=lambda p: p.stat().st_mtime) if texs else None
+
+def read_args(s, i, n):
+    """Read n {...} arguments starting at s[i]; returns (args, index after them)."""
+    args = []
+    for _ in range(n):
+        while i < len(s) and s[i].isspace():
+            i += 1
+        if i >= len(s) or s[i] != "{":
+            raise ValueError(f"expected '{{' near: {s[i:i + 60]!r}")
+        depth, j = 1, i + 1
+        while j < len(s) and depth:
+            if s[j] == "\\":
+                j += 2
+                continue
+            if s[j] == "{": depth += 1
+            elif s[j] == "}": depth -= 1
+            j += 1
+        args.append(s[i + 1:j - 1])
+        i = j
+    return args, i
+
+def cv_sections(tex):
+    """{section title: section source}, comments removed."""
+    body = re.sub(r"(?<!\\)%.*", "", tex)
+    marks = list(re.finditer(r"\\section\{([^}]*)\}|\\printbibliography|\\end\{document\}", body))
+    return {m.group(1): body[m.end():nxt.start()]
+            for m, nxt in zip(marks, marks[1:]) if m.group(1)}
+
+def find_section(sections, prefix):
+    for name, text in sections.items():
+        if name.lower().startswith(prefix.lower()):
+            return text
+    return None
+
+def commands(text):
+    i = 0
+    while (m := CMD_RE.search(text, i)):
+        args, i = read_args(text, m.end(), CV_COMMANDS[m.group(1)])
+        yield m.group(1), args
+
+def tex_to_html(s):
+    """LaTeX snippet -> HTML text (escaped, with <strong>/<em>/<a>)."""
+    s = html.escape(s, quote=False)
+    s = re.sub(r"\\href\{([^{}]*)\}\{([^{}]*)\}",
+               lambda m: f'<a class="underline" href="{m.group(1).strip()}" target="_blank" rel="noopener">{m.group(2).strip()}</a>', s)
+    tags = {"textbf": "strong", "textit": "em", "emph": "em"}
+    while True:
+        t = re.sub(r"\\(textbf|textit|emph)\{([^{}]*)\}", lambda m: f"<{tags[m.group(1)]}>{m.group(2)}</{tags[m.group(1)]}>", s)
+        if t == s:
+            break
+        s = t
+    for a, b in [(r"\&amp;", "&amp;"), (r"\_", "_"), (r"\%", "%"), (r"\$", "$"), (r"\#", "#"),
+                 ("$|$", "|"), ("``", "\u201c"), ("''", "\u201d"), ("---", "\u2014"), ("--", "\u2013"), ("~", "\u00a0")]:
+        s = s.replace(a, b)
+    s = re.sub(r"\\[a-zA-Z]+\*?", "", s).replace("{", "").replace("}", "")
+    return re.sub(r"\s+", " ", s).strip()
+
+def plain(h):
+    """HTML -> plain text, one line per block element."""
+    h = re.sub(r"</(li|p|h3|div)>|<br\s*/?>", "\n", h)
+    lines = (re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", l))).strip() for l in h.split("\n"))
+    return "\n".join(l for l in lines if l)
+
+def site_text(s):
+    s = tex_to_html(s)
+    m = re.search(r"\s*\(([^()]+)\)$", s)        # "Long Name (ABBR)" -> website name for ABBR
+    if m and m.group(1) in ABBREV:
+        return ABBREV[m.group(1)]
+    for a, b in ABBREV.items():
+        s = re.sub(rf"\b{re.escape(a)}\b", b, s)
+    return s
+
+def split_role(raw):
+    """'Role; Advisor: X' or a two-line tabular cell -> (role, subtitle)."""
+    m = re.match(r"\s*\\begin\{tabular\}(?:\[\w\])?", raw)
+    if m:
+        _, i = read_args(raw, m.end(), 1)
+        raw = raw[i:].replace("\\end{tabular}", "")
+    parts = re.split(r"\\\\|;", raw, maxsplit=1)
+    return tex_to_html(parts[0]), tex_to_html(parts[1]) if len(parts) > 1 else ""
+
+def fmt_dates(s):
+    s = tex_to_html(s).replace("Current", "Present")
+    return re.sub(r",\s*anticipated", " (anticipated)", s)
+
+def start_year(dates):
+    m = re.search(r"\d{4}", dates)
+    return int(m.group()) if m else 0
+
+def parse_entries(text):
+    """\\resumeSubheading entries with any \\resumeSubSubheading roles and bullets."""
+    entries = []
+    for cmd, a in commands(text or ""):
+        if cmd == "resumeSubheading":
+            role, sub = split_role(a[2])
+            entries.append({"org": site_text(a[0]), "loc": tex_to_html(a[1]),
+                            "roles": [{"role": role, "sub": sub, "dates": fmt_dates(a[3]), "bullets": []}]})
+        elif cmd == "resumeSubSubheading" and entries:
+            role, sub = split_role(a[0])
+            entries[-1]["roles"].append({"role": role, "sub": sub, "dates": fmt_dates(a[1]), "bullets": []})
+        elif cmd == "resumeItem" and entries:
+            entries[-1]["roles"][-1]["bullets"].append(tex_to_html(a[0]))
+    return entries
+
+def parse_cv(tex_text):
+    sec = cv_sections(tex_text)
+    cv = {}
+    edu, res = find_section(sec, "Education"), find_section(sec, "Research")
+    if edu is not None and res is not None:
+        cv["experience"] = parse_entries(edu) + parse_entries(res)
+    if (t := find_section(sec, "Honors")) is not None:
+        awards = []
+        for cmd, a in commands(t):
+            if cmd == "resumeAwardHeading":
+                awards.append({"year": tex_to_html(a[0]), "name": tex_to_html(a[1]), "org": site_text(a[2]), "bullets": []})
+            elif cmd == "resumeItem" and awards:
+                awards[-1]["bullets"].append(tex_to_html(a[0]))
+        cv["awards"] = awards
+    if (t := find_section(sec, "Service")) is not None:
+        cv["service"] = parse_entries(t)
+    if (t := find_section(sec, "Professional Membership")) is not None:
+        cv["memberships"] = [{"dates": tex_to_html(a[0]), "role": tex_to_html(a[1]), "org": site_text(a[2])}
+                             for cmd, a in commands(t) if cmd == "resumeMembership"]
+    if (t := find_section(sec, "Currently Under Review")) is not None:
+        review = []
+        for cmd, a in commands(t):
+            m = re.match(r'\s*(.*?)\s*\((\d{4})\)\s*["\u201c`]+(.*?)["\u201d\']+\s*$', a[0], re.S) if cmd == "resumeItem" else None
+            if m:
+                review.append({"authors": tex_to_html(m.group(1)), "year": m.group(2), "title": tex_to_html(m.group(3))})
+        cv["review"] = review
+    if (t := find_section(sec, "Presentations")) is not None:
+        cv["presentations"] = [dict(zip(["authors", "title", "venue", "place", "date"], map(tex_to_html, a)))
+                               for cmd, a in commands(t) if cmd == "resumePresentation"]
+    return cv
+
+# ---------------- CV -> HTML items ----------------
+def slug(*parts):
+    return re.sub(r"[^a-z0-9]+", "-", " ".join(plain(p) for p in parts).lower())[:70].strip("-")
+
+def bold_me(authors):
+    me = f"{MY_FAMILY} {MY_GIVEN[0]}"
+    return authors if "<strong>" in authors else re.sub(rf"\b{me}\b", f"<strong>{me}</strong>", authors)
+
+def ul(bullets, extra=""):
+    if not bullets:
+        return ""
+    lis = "\n".join(f"<li>{b}</li>" for b in bullets)
+    return f'<ul class="list-disc pl-5 space-y-2{extra} text-on-surface-variant leading-relaxed">\n{lis}\n</ul>\n'
+
+def render_experience(entries):
+    items = []
+    for e in sorted(entries, key=lambda e: -start_year(e["roles"][0]["dates"])):   # stable: education first in a year
+        first = e["roles"][0]
+        body = ""
+        for k, r in enumerate(e["roles"]):
+            title = r["role"] + (f" &middot; {r['sub']}" if r["sub"] else "")
+            where = r["dates"] + (f" &middot; {e['loc']}" if k == 0 and e["loc"] else "")
+            body += (f'<p class="text-primary uppercase tracking-widest text-xs font-bold mb-1{" mt-8" if k else ""}">{title}</p>\n'
+                     f'<p class="font-mono text-[11px] uppercase tracking-widest text-on-surface-variant mb-4">{where}</p>\n'
+                     + ul(r["bullets"]))
+        img = next((v for k, v in TIMELINE_IMAGES.items() if k.lower() in e["org"].lower()), None)
+        if img:
+            body += (f'<div class="mt-6 max-w-md bg-surface-container-low p-2"><img class="w-full grayscale hover:grayscale-0 transition-all duration-700" '
+                     f'src="{img[0]}" alt="{html.escape(img[1])}" loading="lazy"/></div>\n')
+        items.append((f"exp--{slug(e['org'], first['role'])}",
+            f'<li class="relative mb-12 ml-8 md:ml-12" data-cv-id="exp--{slug(e["org"], first["role"])}">\n'
+            '<span class="absolute -left-[2.5rem] md:-left-[3.5rem] top-1 w-4 h-4 bg-primary ring-8 ring-background"></span>\n'
+            f'<span class="text-primary font-headline font-black text-3xl md:text-4xl opacity-40 block leading-none mb-2">{start_year(first["dates"]) or ""}</span>\n'
+            f'<h3 class="text-2xl md:text-3xl font-bold tracking-tight mb-2 uppercase">{e["org"]}</h3>\n'
+            f'{body}</li>'))
+    return items
+
+def sentence(s):
+    return s if re.search(r"[.!?]\W*$", plain(s)) else s + "."
+
+def render_awards(awards):
+    items = []
+    for a in awards:
+        head = a["name"] if plain(a["org"]).lower() in plain(a["name"]).lower() else f"{a['name']}, {a['org']}"
+        desc = " ".join(sentence(b) for b in a["bullets"])
+        desc = f'<p class="text-on-surface-variant text-sm leading-relaxed mt-1">{desc}</p>' if desc else ""
+        i = f"award--{slug(a['year'], a['name'])}"
+        items.append((i, f'<div class="flex flex-col md:flex-row gap-2 md:gap-8 py-6 border-b border-outline-variant/40" data-cv-id="{i}">\n'
+                         f'<span class="font-mono text-sm text-primary font-bold w-20 shrink-0">{a["year"]}</span>\n'
+                         f'<div><h3 class="font-bold text-lg">{head}</h3>{desc}</div>\n</div>'))
+    return items
+
+def render_service(entries):
+    items = []
+    for e in entries:
+        body = ""
+        for k, r in enumerate(e["roles"]):
+            title = r["role"] + (f" &middot; {r['sub']}" if r["sub"] else "")
+            body += (f'<p class="font-semibold{" mt-6" if k else ""}">{title}</p>\n'
+                     f'<p class="font-mono text-[11px] uppercase tracking-widest text-primary mb-3">{r["dates"]}</p>\n'
+                     + ul(r["bullets"], " text-sm"))
+        i = f"service--{slug(e['org'])}"
+        items.append((i, f'<div class="bg-surface-container-low p-8" data-cv-id="{i}">\n'
+                         f'<h3 class="text-xl font-bold mb-1">{e["org"]}</h3>\n'
+                         f'<p class="font-mono text-[11px] uppercase tracking-widest text-on-surface-variant mb-6">{e["loc"]}</p>\n'
+                         f'{body}</div>'))
+    return items
+
+def render_memberships(rows):
+    items = []
+    for r in rows:
+        i = f"member--{slug(r['org'])}"
+        items.append((i, f'<div class="flex flex-col md:flex-row gap-2 md:gap-8 py-5 border-b border-outline-variant/40" data-cv-id="{i}">\n'
+                         f'<span class="font-mono text-sm text-primary font-bold md:w-40 shrink-0">{r["dates"]}</span>\n'
+                         f'<p class="font-semibold">{r["org"]}</p>\n</div>'))
+    return items
+
+def pub_row(i, year, title, authors, details, link=""):
+    return (f'<div class="flex gap-4 md:gap-8 py-6 border-b border-outline-variant/30 hover:bg-surface-container-low transition-colors px-2 md:px-4" data-cv-id="{i}">\n'
+            f'<span class="w-12 md:w-16 shrink-0 font-mono text-base md:text-lg font-bold text-primary">{year}</span>\n'
+            '<div class="flex-grow">\n'
+            f'<h3 class="text-lg md:text-xl font-headline font-bold leading-snug mb-1">{title}</h3>\n'
+            f'<p class="text-sm text-on-surface-variant mb-2">{bold_me(authors)}</p>\n'
+            f'<p class="font-mono text-[10px] uppercase tracking-widest text-primary leading-relaxed">{details}</p>{link}\n'
+            '</div>\n</div>')
+
+def render_review(rows):
+    return [(f"review--{slug(r['title'])}", pub_row(f"review--{slug(r['title'])}", r["year"], r["title"], r["authors"], "Manuscript under review"))
+            for r in rows]
+
+def render_presentations(rows):
+    items = []
+    for r in rows:
+        i = f"pres--{slug(r['title'])}"
+        link = next((v for k, v in PRESENTATION_LINKS.items() if k.lower() in plain(r["title"]).lower()), None)
+        link = ('\n<a class="mt-2 font-mono text-[10px] uppercase tracking-widest text-primary inline-flex items-center gap-2 hover:opacity-70" '
+                f'href="{link[1]}" target="_blank" rel="noopener">{link[0]} <span class="material-symbols-outlined text-[14px]">open_in_new</span></a>') if link else ""
+        year = re.search(r"\d{4}", r["date"])
+        items.append((i, pub_row(i, year.group() if year else "", r["title"], r["authors"],
+                                 "; ".join(x for x in [r["venue"], r["place"], r["date"]] if x), link)))
+    return items
+
+# ---------------- Sync CV items into pages, keeping hand edits ----------------
+class _TopLevel(HTMLParser):
+    """Splits an HTML fragment into its top-level elements: [(data-cv-id or None, html)]."""
+    VOID = {"img", "br", "hr", "input", "meta", "link", "source", "wbr"}
+    def __init__(self, text):
+        super().__init__(convert_charrefs=False)
+        self.text, self.depth, self.items, self.start = text, 0, [], None
+        self.line_at = [0] + [m.end() for m in re.finditer("\n", text)]
+        self.feed(text)
+    def _pos(self):
+        line, col = self.getpos()
+        return self.line_at[line - 1] + col
+    def handle_starttag(self, tag, attrs):
+        if self.depth == 0:
+            self.start, self.id = self._pos(), dict(attrs).get("data-cv-id")
+        if tag in self.VOID:
+            if self.depth == 0:
+                self.items.append((self.id, self.text[self.start:self._pos() + len(self.get_starttag_text())]))
+            return
+        self.depth += 1
+    def handle_endtag(self, tag):
+        if tag in self.VOID:
+            return
+        self.depth -= 1
+        if self.depth == 0:
+            end = self.text.index(">", self._pos()) + 1
+            self.items.append((self.id, self.text[self.start:end]))
+
+def same(a, b):
+    return re.sub(r"\s+", " ", a or "").strip() == re.sub(r"\s+", " ", b or "").strip()
+
+def text_diff(old, new, indent="      "):
+    return [indent + l for l in difflib.ndiff(plain(old).splitlines(), plain(new).splitlines()) if l[:1] in "+-"]
+
+def label(h):
+    return " / ".join(plain(h).splitlines()[:3])[:110]
+
+def merge_block(cv_items, page_items, snap):
+    """Three-way merge of one block. Returns (html items, report lines)."""
+    page = {i: h for i, h in page_items if i}
+    out, notes = [], []
+    if snap is None:   # first sync: build from the CV and show where the old page differed
+        diff = text_diff("\n".join(h for _, h in page_items), "\n".join(h for _, h in cv_items))
+        if diff:
+            notes.append("  first sync: built from the CV. Old page text that differed (- old, + new):")
+            notes += diff
+        return [h for _, h in cv_items], notes
+    for i, new in cv_items:
+        old, cur = snap.get(i), page.get(i)
+        if old is None:
+            out.append(cur if cur is not None else new)
+            if cur is None:
+                notes.append(f"  + added: {label(new)}")
+        elif same(new, old):
+            if cur is not None:
+                out.append(cur)          # CV unchanged: keep whatever the page has (hand edits survive)
+        elif cur is None:
+            notes.append(f"  ! the CV changed an item you removed from the website (left out): {label(new)}")
+        elif same(cur, old):
+            out.append(new)
+            notes.append(f"  ~ updated from the CV: {label(new)}")
+            notes += text_diff(old, new)
+        else:
+            out.append(cur)
+            notes.append(f"  ! kept your website wording, but the CV changed this item: {label(cur)}")
+            notes += text_diff(cur, new)
+    cv_ids = {i for i, _ in cv_items}
+    for i, cur in page_items:
+        if i in cv_ids:
+            continue
+        if i and i in snap and same(cur, snap[i]):
+            notes.append(f"  - removed (no longer in the CV): {label(cur)}")
+        else:
+            out.append(cur)
+            if i in snap:
+                notes.append(f"  ! no longer in the CV, but kept because you edited it on the website: {label(cur)}")
+    return out, notes
+
+def sync_page(path, blocks, snapshot, report):
+    """blocks: [(marker name, section label, cv items)]. Returns the new page text."""
+    page = path.read_text(encoding="utf-8")
+    for name, title, cv_items in blocks:
+        m = re.search(rf"(<!-- AUTO-{name}:START[^>]*-->)(.*?)(<!-- AUTO-{name}:END -->)", page, re.S)
+        if not m:
+            report.append(f"{title}: AUTO-{name} markers not found in {path.name}; skipped.")
+            continue
+        key = f"{path.stem}.{name}"
+        items, notes = merge_block(cv_items, _TopLevel(m.group(2)).items, snapshot.get(key))
+        snapshot[key] = {i: h for i, h in cv_items}
+        if notes:
+            report.append(f"{title}:")
+            report += notes
+        page = page[:m.end(1)] + "\n" + "\n".join(items) + "\n" + page[m.start(3):]
+    return page
+
+def update_from_cv(dry, tex_path):
+    """Sync timeline.html and the CV-based lists on publications.html. Returns changed files."""
+    tex_path = tex_path or newest_tex()
+    if not tex_path or not tex_path.exists():
+        print("Experience: no CV .tex file found in the Resumes folder; skipped.")
+        return []
+    cv = parse_cv(tex_path.read_text(encoding="utf-8"))
+    snapshot = json.loads(SNAPSHOT.read_text(encoding="utf-8")) if SNAPSHOT.exists() else {}
+    report = []
+    pages = {
+        TIMELINE_PAGE: [("EXPERIENCE", "Experience \u203a Education & research", render_experience, "experience"),
+                        ("AWARDS", "Experience \u203a Honors & awards", render_awards, "awards"),
+                        ("SERVICE", "Experience \u203a Leadership & service", render_service, "service"),
+                        ("MEMBERSHIPS", "Experience \u203a Memberships", render_memberships, "memberships")],
+        PUBS_PAGE: [("UNDER-REVIEW", "Publications \u203a Under review", render_review, "review"),
+                    ("PRESENTATIONS", "Publications \u203a Presentations", render_presentations, "presentations")],
+    }
+    changed = []
+    for path, specs in pages.items():
+        blocks = []
+        for name, title, render, key in specs:
+            if key in cv:
+                blocks.append((name, title, render(cv[key])))
+            else:
+                report.append(f"{title}: section not found in the CV; left as is.")
+        new_page = sync_page(path, blocks, snapshot, report)
+        if new_page != path.read_text(encoding="utf-8"):
+            changed.append(path)
+            if not dry:
+                path.write_text(new_page, encoding="utf-8")
+    new_snap = json.dumps(snapshot, indent=1, ensure_ascii=False, sort_keys=True) + "\n"
+    if not SNAPSHOT.exists() or new_snap != SNAPSHOT.read_text(encoding="utf-8"):
+        changed.append(SNAPSHOT)
+        if not dry:
+            SNAPSHOT.write_text(new_snap, encoding="utf-8")
+    print(f"Experience & presentations: synced with {tex_path.name} -> "
+          + (", ".join(p.name for p in changed if p != SNAPSHOT) or "pages already up to date"))
+    for line in report:
+        print("   " + line)
+    return changed
+
 def git(*args):
     return subprocess.run(["git", *args], cwd=SITE_DIR, text=True, capture_output=True)
 
@@ -213,23 +612,27 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true", help="show what would change, write nothing")
     ap.add_argument("--no-push", action="store_true", help="update files but don't commit or push")
+    ap.add_argument("--tex", type=Path, help="CV LaTeX file to read (default: newest .tex in the Resumes folder)")
     a = ap.parse_args()
     if not RESUMES_DIR.exists():
         sys.exit(f"Can't find the Resumes folder: {RESUMES_DIR}")
     cv_changed = update_cv(a.dry_run)
     pubs_changed = update_publications(a.dry_run)
+    cv_files = update_from_cv(a.dry_run, a.tex)
     if a.dry_run:
         print("\nDry run: nothing was written.")
         return
-    if not (cv_changed or pubs_changed):
+    if not (cv_changed or pubs_changed or cv_files):
         print("\nEverything is already up to date. Nothing to publish.")
         return
     if a.no_push:
         print("\nFiles updated. Not committed (--no-push).")
         return
-    files = [str(p.relative_to(SITE_DIR)) for p, c in [(CV_TARGET, cv_changed), (PUBS_PAGE, pubs_changed)] if c]
-    git("add", *files)
-    what = " and ".join(x for x, c in [("CV", cv_changed), ("publications", pubs_changed)] if c)
+    files = {p for p, c in [(CV_TARGET, cv_changed), (PUBS_PAGE, pubs_changed)] if c} | set(cv_files)
+    git("add", *sorted(str(p.relative_to(SITE_DIR)) for p in files))
+    what = [x for x, c in [("CV", cv_changed), ("publications", pubs_changed or PUBS_PAGE in cv_files),
+                           ("experience", TIMELINE_PAGE in cv_files)] if c] or ["CV sync record"]
+    what = ", ".join(what[:-1]) + " and " + what[-1] if len(what) > 1 else what[0]
     r = git("commit", "-m", f"Update {what} ({date.today().isoformat()})")
     if r.returncode != 0:
         sys.exit("git commit failed:\n" + r.stdout + r.stderr)

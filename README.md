@@ -58,11 +58,17 @@ Then open http://localhost:8000. Use a local server rather than opening files di
 3. Add a card to `all_projects.html` (and to `index.html` if it should be featured).
 4. Slides, posters, and demo videos go in the page's **Materials** section (see the commented block in the template). Upload videos to YouTube (unlisted is fine) and link to them; never commit video files, since GitHub rejects files over 100 MB.
 
-**Update the CV**
-Save a PDF (without a phone number) as `assets/Joseph_Tran_CV.pdf`. The "Download CV" button links there.
+**Update the CV, publications, and experience**
+Double-click `Update Website.command` (runs `scripts/update_website.py`). It:
+- copies the newest dated CV PDF from the Resumes folder to `assets/Joseph_Tran_CV.pdf` (the "Download CV" button)
+- rebuilds the Published list on `publications.html` from the Zotero `.bib`
+- syncs the Experience page (`timeline.html`) and the Under Review and Presentations lists on `publications.html` with the CV's LaTeX source, then commits and pushes
 
-**Add a publication or presentation**
-Copy an existing entry block in `publications.html`. Add it to the Selected Research list on `index.html` if it should appear on the homepage.
+Preview first with `python3 scripts/update_website.py --dry-run`. The CV is only read, never changed.
+
+Synced items sit between `AUTO-<NAME>:START` / `END` comments and carry a `data-cv-id`. You can reword any of them by hand on the website: an item is only replaced when the CV changes that same item. If the CV and the website both changed it, the website's wording is kept and the script prints a warning with the CV's new text. `scripts/cv_snapshot.json` records what the CV said at the last sync; commit it with the pages. Website-only items go outside the AUTO markers. Timeline images and presentation slide/poster links are set in `TIMELINE_IMAGES` and `PRESENTATION_LINKS` at the top of the script.
+
+Add a publication to the Selected Research list on `index.html` by hand if it should appear on the homepage.
 
 ## Deploy
 
