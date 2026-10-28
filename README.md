@@ -28,7 +28,8 @@ Live site: https://jztrxn.github.io
     ├── css/site.css            # small shared styles
     ├── js/tailwind-config.js   # shared Tailwind colors and fonts
     ├── js/site.js              # shared nav, footer, mobile menu, contact links
-    ├── img/                    # project images and favicon
+    ├── img/                    # favicon, headshot, and one folder per project
+    │   └── <project-name>/     # cover.jpg plus any slides, posters, or gallery images
     └── Joseph_Tran_CV.pdf      # CV for the "Download CV" button (add manually)
 ```
 
@@ -53,8 +54,9 @@ Then open http://localhost:8000. Use a local server rather than opening files di
 
 **Add a project**
 1. Copy `projects/project_template.html` to `projects/<project-name>.html` and fill it in.
-2. Put images in `assets/img/` and reference them as `../assets/img/<file>`.
+2. Make a folder `assets/img/<project-name>/` with a `cover.jpg` (plus any slide or poster PDFs) and reference it as `../assets/img/<project-name>/cover.jpg`.
 3. Add a card to `all_projects.html` (and to `index.html` if it should be featured).
+4. Slides, posters, and demo videos go in the page's **Materials** section (see the commented block in the template). Upload videos to YouTube (unlisted is fine) and link to them; never commit video files, since GitHub rejects files over 100 MB.
 
 **Update the CV**
 Save a PDF (without a phone number) as `assets/Joseph_Tran_CV.pdf`. The "Download CV" button links there.
